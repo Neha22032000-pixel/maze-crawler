@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.env
+kaggle.json
+
+# Kaggle data and generated artifacts
+data/raw/*
+data/processed/*
+submissions/*.csv
+submissions/*.zip
+
+# Keep folder placeholders and docs
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!submissions/.gitkeep
+!data/README.md
