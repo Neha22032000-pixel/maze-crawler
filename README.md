@@ -49,6 +49,22 @@ python src\download_data.py
 
 Downloaded files will go under `data/raw/` and remain ignored by git.
 
+## Create a Baseline Submission
+
+After the competition files are downloaded, run:
+
+```powershell
+python src\make_submission.py
+```
+
+The output will be written to:
+
+```text
+submissions\baseline_submission.csv
+```
+
+The script reads `sample_submission.csv` to preserve Kaggle's required submission schema. If `test.csv` contains a recognizable maze/grid column, it attempts a BFS path solution. Otherwise, it creates a schema-valid fallback using the sample submission values.
+
 ## Next Steps
 
 1. Inspect competition files and evaluation metric.
