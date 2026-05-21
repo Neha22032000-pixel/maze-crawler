@@ -113,6 +113,99 @@ def choose_move(obs, config, col, row, target, occupied, reserved, enemies):
     return choice(best)
 
 
+def safe_jump(obs, config, col, row, reserved, enemies):
+    choices = []
+    for move, dc, dr, _ in DIRS:
+        ncol, nrow = col + 2 * dc, row + 2 * dr
+        if not (0 <= ncol < config.width):
+            continue
+        if not (obs.southBound <= nrow <= obs.northBound):
+            continue
+
+        landing_wall = wall_at(obs, config, ncol, nrow)
+        dest = (ncol, nrow)
+        score = 0
+        if move == "NORTH":
+            score += 50
+        elif move in ("EAST", "WEST"):
+            score += 5
+        else:
+            score -= 80
+        score += 4 * (nrow - obs.southBound)
+        if landing_wall == 15:
+            score -= 200
+        if landing_wall & NORTH:
+            score -= 20
+        if dest in reserved:
+            score -= 100
+        if dest in enemies:
+            score -= 40
+        choices.append((score, move))
+
+    if not choices:
+        return None
+    choices.sort(reverse=True)
+    if choices[0][0] < -50:
+        return None
+    return "JUMP_" + choices[0][1]
+
+
+def factory_move(obs, config, col, row, occupied, reserved, enemies):
+    options = []
+    current_wall = wall_at(obs, config, col, row)
+    for move, dc, dr, bit in DIRS:
+        if move == "SOUTH":
+            continue
+        if current_wall & bit:
+            continue
+        ncol, nrow = col + dc, row + dr
+        if not (0 <= ncol < config.width):
+            continue
+        if not (obs.southBound <= nrow <= obs.northBound):
+            continue
+        dest = (ncol, nrow)
+        score = 5 * (nrow - obs.southBound)
+        if move == "NORTH":
+            score += 30
+        if nrow <= obs.southBound + 2:
+            score -= 50
+        if dest in occupied or dest in reserved:
+            score -= 100
+        if dest in enemies:
+            score -= 40
+        options.append((score, move))
+
+    if not options:
+        return "IDLE"
+    options.sort(reverse=True)
+    return options[0][1]
+
+
+def factory_escape(obs, config, col, row, enemies):
+    current_wall = wall_at(obs, config, col, row)
+    urgent = []
+    for move, dc, dr, bit in DIRS:
+        if move == "SOUTH":
+            continue
+        if current_wall & bit:
+            continue
+        ncol, nrow = col + dc, row + dr
+        if not (0 <= ncol < config.width):
+            continue
+        if not (obs.southBound <= nrow <= obs.northBound):
+            continue
+        score = 10 * (nrow - obs.southBound)
+        if move == "NORTH":
+            score += 100
+        if (ncol, nrow) in enemies:
+            score -= 40
+        urgent.append((score, move))
+    if not urgent:
+        return "IDLE"
+    urgent.sort(reverse=True)
+    return urgent[0][1]
+
+
 def agent(obs, config):
     actions = {}
     my_units = {
@@ -170,15 +263,19 @@ def agent(obs, config):
         counts = unit_counts(my_units)
 
         if row <= obs.southBound + 1 and jump_cd == 0:
-            actions[uid] = "JUMP_NORTH"
+            actions[uid] = safe_jump(obs, config, col, row, reserved, enemies) or factory_escape(obs, config, col, row, enemies)
+        elif row <= obs.southBound + 1:
+            actions[uid] = factory_escape(obs, config, col, row, enemies)
+        elif row <= obs.southBound + 3 and jump_cd == 0:
+            actions[uid] = safe_jump(obs, config, col, row, reserved, enemies) or factory_move(obs, config, col, row, occupied, reserved, enemies)
         elif north_cell in occupied or north_cell in reserved:
             actions[uid] = "IDLE"
         elif build_cd == 0 and not (current_wall & NORTH):
             build = choose_build(config, energy, counts, len(crystals), len(mining_nodes))
-            actions[uid] = build if build else "NORTH"
+            actions[uid] = build if build else factory_move(obs, config, col, row, occupied, reserved, enemies)
         elif current_wall & NORTH and jump_cd == 0:
-            actions[uid] = "JUMP_NORTH"
+            actions[uid] = safe_jump(obs, config, col, row, reserved, enemies) or "IDLE"
         else:
-            actions[uid] = choose_move(obs, config, col, row, (col, row + 8), occupied, reserved, enemies)
+            actions[uid] = factory_move(obs, config, col, row, occupied, reserved, enemies)
 
     return actions
