@@ -1,6 +1,7 @@
 """Maze Crawler heuristic agent."""
 
 from random import choice
+from collections import deque
 
 
 NORTH, EAST, SOUTH, WEST = 1, 2, 4, 8
@@ -82,6 +83,10 @@ def choose_target(rtype, col, row, crystals, mining_nodes):
 
 
 def choose_move(obs, config, col, row, target, occupied, reserved, enemies):
+    planned = bfs_first_move(obs, config, col, row, target, occupied, reserved, enemies)
+    if planned:
+        return planned
+
     options = []
     current_wall = wall_at(obs, config, col, row)
     for move, dc, dr, bit in DIRS:
@@ -111,6 +116,49 @@ def choose_move(obs, config, col, row, target, occupied, reserved, enemies):
     best_score = options[0][0]
     best = [move for score, move in options if score == best_score]
     return choice(best)
+
+
+def bfs_first_move(obs, config, col, row, target, occupied, reserved, enemies):
+    start = (col, row)
+    if start == target:
+        return None
+
+    queue = deque([(start, None)])
+    seen = {start}
+    best = None
+    best_dist = distance(start, target)
+
+    while queue and len(seen) < 160:
+        (ccol, crow), first = queue.popleft()
+        current_dist = distance((ccol, crow), target)
+        if current_dist < best_dist:
+            best_dist = current_dist
+            best = first
+        if (ccol, crow) == target:
+            return first
+
+        current_wall = wall_at(obs, config, ccol, crow)
+        for move, dc, dr, bit in DIRS:
+            if current_wall & bit:
+                continue
+            ncol, nrow = ccol + dc, crow + dr
+            nxt = (ncol, nrow)
+            if nxt in seen:
+                continue
+            if not (0 <= ncol < config.width):
+                continue
+            if not (obs.southBound <= nrow <= obs.northBound):
+                continue
+            if nrow <= obs.southBound + 1:
+                continue
+            if nxt in enemies:
+                continue
+            if nxt != target and (nxt in occupied or nxt in reserved):
+                continue
+            seen.add(nxt)
+            queue.append((nxt, first or move))
+
+    return best
 
 
 def safe_jump(obs, config, col, row, reserved, enemies):
