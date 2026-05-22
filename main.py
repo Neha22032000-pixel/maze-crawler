@@ -53,15 +53,10 @@ def distance(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
-def choose_build(config, energy, counts, crystal_count, node_count, step):
+def choose_build(config, energy, counts, crystal_count, node_count):
     scouts = counts.get(1, 0)
     workers = counts.get(2, 0)
     miners = counts.get(3, 0)
-
-    if step > 300 and energy < 650:
-        return None
-    if step > 220 and energy < 500:
-        return None
 
     if scouts < 2 and energy >= get_cfg(config, "scoutCost", 50) + 250:
         return "BUILD_SCOUT"
@@ -71,7 +66,7 @@ def choose_build(config, energy, counts, crystal_count, node_count, step):
         return "BUILD_MINER"
     if crystal_count and scouts < 5 and energy >= get_cfg(config, "scoutCost", 50) + 150:
         return "BUILD_SCOUT"
-    if step < 260 and workers < 3 and energy >= get_cfg(config, "workerCost", 200) + 200:
+    if workers < 3 and energy >= get_cfg(config, "workerCost", 200) + 200:
         return "BUILD_WORKER"
     return None
 
@@ -324,7 +319,7 @@ def agent(obs, config):
         elif north_cell in occupied or north_cell in reserved:
             actions[uid] = "IDLE"
         elif build_cd == 0 and not (current_wall & NORTH):
-            build = choose_build(config, energy, counts, len(crystals), len(mining_nodes), obs.step)
+            build = choose_build(config, energy, counts, len(crystals), len(mining_nodes))
             actions[uid] = build if build else factory_move(obs, config, col, row, occupied, reserved, enemies)
         elif current_wall & NORTH and jump_cd == 0:
             actions[uid] = safe_jump(obs, config, col, row, reserved, enemies) or "IDLE"
