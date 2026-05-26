@@ -58,15 +58,19 @@ def choose_build(config, energy, counts, crystal_count, node_count):
     workers = counts.get(2, 0)
     miners = counts.get(3, 0)
 
-    if scouts < 2 and energy >= get_cfg(config, "scoutCost", 50) + 250:
+    if scouts < 1 and energy >= get_cfg(config, "scoutCost", 50) + 250:
         return "BUILD_SCOUT"
-    if workers < 2 and energy >= get_cfg(config, "workerCost", 200) + 250:
-        return "BUILD_WORKER"
-    if node_count and miners < 2 and energy >= get_cfg(config, "minerCost", 300) + 250:
+    if node_count and miners < 1 and energy >= get_cfg(config, "minerCost", 300) + 200:
         return "BUILD_MINER"
-    if crystal_count and scouts < 5 and energy >= get_cfg(config, "scoutCost", 50) + 150:
+    if scouts < 2 and energy >= get_cfg(config, "scoutCost", 50) + 300:
         return "BUILD_SCOUT"
-    if workers < 3 and energy >= get_cfg(config, "workerCost", 200) + 200:
+    if workers < 1 and energy >= get_cfg(config, "workerCost", 200) + 300:
+        return "BUILD_WORKER"
+    if node_count and miners < 2 and energy >= get_cfg(config, "minerCost", 300) + 450:
+        return "BUILD_MINER"
+    if crystal_count and scouts < 4 and energy >= get_cfg(config, "scoutCost", 50) + 250:
+        return "BUILD_SCOUT"
+    if workers < 2 and energy >= get_cfg(config, "workerCost", 200) + 450:
         return "BUILD_WORKER"
     return None
 
@@ -292,7 +296,7 @@ def agent(obs, config):
             continue
 
         current_wall = wall_at(obs, config, col, row)
-        if rtype == 2 and (current_wall & NORTH) and energy >= get_cfg(config, "wallRemoveCost", 100) + 5:
+        if rtype == 2 and (current_wall & NORTH) and energy >= get_cfg(config, "wallRemoveCost", 100) + 120:
             actions[uid] = "REMOVE_NORTH"
             reserved.add((col, row))
             continue
